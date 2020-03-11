@@ -5,7 +5,7 @@ function Footer() {
   const year = d.getFullYear();
 
   return (
-    <footer>
+    <footer align="center">
       <p>Copyright ⓒ {year}</p>
     </footer>
   );

@@ -1,92 +1,75 @@
-// import React, { useState } from "react";
-// import {
-//     FormControl,
-//     InputLabel,
-//     Select,
-//     TextField,
-//     Button,
-//     Grid
-//   } from "@material-ui/core";
+import React, { useState, useEffect } from "react";
+import { Select, TextField, Button, Container, MenuItem } from "@material-ui/core";
 
+function DocAction() {
+  const [actionTypes, setActionTypes] = useState([]);
+  const [chosenActionType, setChosenActionType] = useState("");
+  //const [actionLocation, setActionLocation] = useState("");
+  const [actionContext, setActionContext] = useState("");
 
-// function Main(props) {
-  
-//   const [actionType, setActionType] = useState("");
-//   const [actionLocation, setActionLocation] = useState("");
-//   const [actionContext, setActionContext] = useState("");
- 
+  useEffect(() => {
+    let url = "http://localhost:4000/newActionInfo";
+    fetch(url, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include"
+    })
+      .then(response =>
+        response.json().then(answer => {
+          setActionTypes(answer);
+        })
+      )
+      .catch(error => console.log("error", error));
+  }, []);
 
-//   function getTime(){
-//     let d = new Date();
-//     let hours = d.getHours();
-//     let minutes = d.getMinutes();
-//     return  hours + ":" + minutes;
-//   }
+  // function getTime() {
+  //   let d = new Date();
+  //   let hours = d.getHours();
+  //   let minutes = d.getMinutes();
+  //   return hours + ":" + minutes;
+  // }
 
-//   function handleTypeChange(event) {
-//     setActionType(event.target.value);
-//   }
+  function handleTypeChange(event) {
+    setChosenActionType(event.target.value);
+  }
 
-//   function handleTextChange(event) {
-//     setActionContext(event.target.value);
-//   }
+  function handleContextChange(event) {
+    setActionContext(event.target.value);
+  }
 
-//   function handleClick(event) {
-//     event.preventDefault();
-//     props.addNote(noteTitle, noteContent);
-//     setNoteTitle("");
-//     setNoteContent("");
-//   }
+  function handleSubmit(event) {
+    event.preventDefault();
+  }
 
-//   function handleTextClick() {
-//     setIsExpanded(true);
-//   }
+  return (
+    <Container maxWidth="xs">
+      <form onSubmit={handleSubmit}>
+        <Select
+          required
+          id="action-type"
+          autoFocus
+          value={chosenActionType}
+          onChange={handleTypeChange}
+        >
+          {actionTypes.map((action, index) => {
+            return <MenuItem value={action.actionName} key={index}/>
+          })}
+        </Select>
+        <TextField
+          variant="outlined"
+          margin="normal"
+          required
+          id="context-input"
+          type="text"
+          value={actionContext}
+          onChange={handleContextChange}
+        />
+        <Button type="submit" fullWidth variant="contained" color="primary">
+          Submit new action
+        </Button>
+      </form>
+    </Container>
+  );
+}
 
-//   return (
-//     <div>
-//       <form action="/add-new-action" method="POST" align="center">
-//           <FormControl>
-//             <InputLabel htmlFor="email-input">Email address</InputLabel>
-//             <Select
-//             native
-//             value={actionType}
-//             onChange={handleTypeChange}
-//             inputProps={{
-//             name: 'age',
-//             id: 'age-native-simple',
-//           }}
-//             />
-//           </FormControl>
-
-//           <FormControl>
-//             <InputLabel htmlFor="email-input">Email address</InputLabel>
-//             <TextField id="standard-basic" label="Standard"  value={actionContext}
-//             onChange={handleContextChange}/>
-//           </FormControl>
-//         {isExpanded && (
-//           <input
-//             onChange={handleTitleChange}
-//             name="title"
-//             placeholder="Title"
-//             value={noteTitle}
-//           />
-//         )}
-//         <textarea
-//           onChange={handleTextChange}
-//           onClick={!isExpanded && handleTextClick}
-//           name="content"
-//           placeholder="Take a note..."
-//           rows={isExpanded ? 3 : 1}
-//           value={noteContent}
-//         />
-//         <Zoom in={isExpanded}>
-//           <Fab onClick={handleClick}>
-//             <AddIcon />
-//           </Fab>
-//         </Zoom>
-//       </form>
-//     </div>
-//   );
-// }
-
-// export default Main;
+export default DocAction;
