@@ -1,71 +1,31 @@
-// import React, { useState } from "react";
-// //import AddIcon from "@material-ui/icons/Add";
+import React from 'react';
+import ActionTable from "./ActionTable";
 
-// function Main(props) {
-  
-//   const [actionType, setActionType] = useState("");
-//   const [actionLocation, setActionLocation] = useState("");
-//   const [actionContext, setActionContext] = useState("");
-  
-
-//   const [noteTitle, setNoteTitle] = useState("");
-//   const [noteContent, setNoteContent] = useState("");
-//   const [isExpanded, setIsExpanded] = useState(false);
-
-//   function getTime(){
-//     let d = new Date();
-//     let hours = d.getHours();
-//     let minutes = d.getMinutes();
-//     return  hours + ":" + minutes;
-//   }
+function Actions() {
+  return (
+    <ActionTable />
+  )
+}
 
 
-//   function handleTitleChange(event) {
-//     setNoteTitle(event.target.value);
-//   }
+export default Actions;
 
-//   function handleTextChange(event) {
-//     setNoteContent(event.target.value);
-//   }
 
-//   function handleClick(event) {
-//     event.preventDefault();
-//     props.addNote(noteTitle, noteContent);
-//     setNoteTitle("");
-//     setNoteContent("");
-//   }
 
-//   function handleTextClick() {
-//     setIsExpanded(true);
-//   }
 
-//   return (
-//     <div>
-//       <form className="create-note">
-//         {isExpanded && (
-//           <input
-//             onChange={handleTitleChange}
-//             name="title"
-//             placeholder="Title"
-//             value={noteTitle}
-//           />
-//         )}
-//         <textarea
-//           onChange={handleTextChange}
-//           onClick={!isExpanded && handleTextClick}
-//           name="content"
-//           placeholder="Take a note..."
-//           rows={isExpanded ? 3 : 1}
-//           value={noteContent}
-//         />
-//         <Zoom in={isExpanded}>
-//           <Fab onClick={handleClick}>
-//             <AddIcon />
-//           </Fab>
-//         </Zoom>
-//       </form>
-//     </div>
-//   );
-// }
 
-// export default Main;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

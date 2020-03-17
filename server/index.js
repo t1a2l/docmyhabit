@@ -1,4 +1,5 @@
 require("dotenv").config();
+const types = require('./types');
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
@@ -35,7 +36,7 @@ app.use(passport.session());
 
 app.use(function(req, res, next) {
   // Website you wish to allow to connect
-  res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+  res.setHeader("Access-Control-Allow-Origin", "http://ec2-54-152-212-119.compute-1.amazonaws.com:3000");
 
   // Set to true if you need the website to include cookies in the requests sent
   // to the API (e.g. in case you use sessions)
@@ -71,10 +72,6 @@ const userSchema = new mongoose.Schema({
   secret: String
 });
 
-const actionTypeSchema = new mongoose.Schema({
-  actionName: String
-});
-
 userSchema.plugin(passportLocalMongoose, {
   usernameField: 'email'
 });
@@ -83,27 +80,34 @@ userSchema.plugin(findOrCreate);
 
 const User = mongoose.model("User", userSchema);
 
+const actionTypeSchema = new mongoose.Schema({
+  actionName: String
+});
+
+const locationTypeSchema = new mongoose.Schema({
+  locationName: String
+});
+
+const actionSchema = new mongoose.Schema({
+  email: String,
+  actions: Array
+});
+
 const ActionType = mongoose.model("ActionType", actionTypeSchema);
 
-const smoke = new ActionType({
-  actionName: "עישון"
-});
+const LocationType = mongoose.model("LocationType", locationTypeSchema);
 
-const alcohol = new ActionType({
-  actionName: "אלכוהול"
-});
+const Actions = mongoose.model("Action", actionSchema);
 
-ActionType.findOne({ actionName: 'עישון' }, function (err, action) {
-  if(!action) {
-    smoke.save();
-  }
-});
+types.createType(ActionType, "actionName", "עישון");
 
-ActionType.findOne({ actionName: 'אלכוהול' }, function (err, action) {
-  if(!action) {
-    alcohol.save();
-  }
-});
+types.createType(ActionType, "actionName", "אלכוהול");
+
+types.createType(LocationType, "locationName", "בית");
+
+types.createType(LocationType, "locationName", "עבודה");
+
+types.createType(LocationType, "locationName", "רכב");
 
 passport.use(User.createStrategy());
 
@@ -115,7 +119,7 @@ passport.use(
     {
       clientID: process.env.CLIENT_ID,
       clientSecret: process.env.CLIENT_SECRET,
-      callbackURL: "http://localhost:4000/auth/google/docmyhabit",
+      callbackURL: "http://ec2-54-152-212-119.compute-1.amazonaws.com:4000/auth/google/docmyhabit",
       passReqToCallback: true
     },
     function(accessToken, refreshToken, profile, db) {
@@ -167,13 +171,18 @@ app.get("/Main", loggedIn, function(req, res) {
   res.send("success");
 });
 
-app.get("/Logout", function(req, res) {
-  req.logOut();
-  req.session = null;
-  res.send("success"); 
+app.get("/Logout", loggedIn, function(req, res) {
+  req.session.destroy(error => {
+    req.session = null;
+    if (error) return next(error);
+    res.send("success")
+  });
 });
 
 app.post("/Register", function(req, res) {
+  if(req.body.password !== req.body.passwordApprove) {
+    res.send("הסיסמאות אינן תואמות!");
+  }
   User.register({ email: req.body.email, firstName: req.body.firstName, lastName: req.body.lastName }, req.body.password, function(
     err,
     user
@@ -181,7 +190,7 @@ app.post("/Register", function(req, res) {
     if (err) {
       res.send(err.message);
     } else if (!user) {
-      res.send("Failed to register user!");
+      res.send("הרשמה נכשלה!");
     } else {
       passport.authenticate("local")(req, res, function() {
         res.send("success");
@@ -201,22 +210,93 @@ app.post("/Login", function(req, res, next) {
         res.send("success");
       });
     } else {
-      res.send("There was an error logging in");
+      res.send("הייתה בעיה בהתחברות");
     }
   })(req, res, next);
 });
 
 app.get("/newActionInfo", loggedIn, function(req, res) {
-    ActionType.find({},{actionName:1}, function(err, results){
-      console.log("1");
-      if(err) {
-        console.log(err);
-      } else {
-        res.send(results);
-      }
-    });
+  let resultsArr = [];
+  ActionType.find({},{actionName:1}, function(err, results){
+    if(err) {
+      console.log(err);
+    } else {
+      resultsArr.push(results);
+      LocationType.find({},{locationName:1}, function(err, results){
+        if(err) {
+          console.log(err);
+        } else {
+          resultsArr.push(results);
+          res.send(resultsArr);
+        }
+      });
+    }
+  });
 });
 
+app.post("/newActionInfo", loggedIn, function(req, res) {
+  Actions.findOne({ email: req.user.email }, function(err, result) {
+    if (err) {
+      console.log(err);
+    } else {
+      if(result === null) {
+        let actions = [];
+        actions.push(req.body);
+        Actions.create({ email: req.user.email, actions: [{
+          key: mongoose.Types.ObjectId(),
+          actionType: req.body.actionType, 
+          actionDateTime: req.body.actionDateTime,
+          actionLocation: req.body.actionLocation,
+          actionContext: req.body.actionContext,
+        
+        }] }, function(err, result) {
+          if (err) {
+            res.send(err);
+          } else {
+            res.send("success");
+          }
+        });
+      } else {
+        Actions.updateOne(
+          { email: req.user.email }, 
+          {$push: { actions: {
+            key: mongoose.Types.ObjectId(),
+            actionType: req.body.actionType, 
+            actionDateTime: req.body.actionDateTime,
+            actionLocation: req.body.actionLocation,
+            actionContext: req.body.actionContext,          
+          }}}, function(err, result) {
+            if(err) {
+              console.log(err);
+            } else {
+              res.send("success");
+            }
+        });
+      }
+    } 
+  });
+});
+
+app.get("/Actions", loggedIn, function(req, res) {
+  Actions.findOne({ email: req.user.email }, function(err, results){
+    if(err) {
+      console.log(err);
+    } else {
+      res.send(results);
+    }
+  });
+});
+
+// app.post("/DeleteActions", loggedIn, function(req, res) {
+//   console.log(req.body.actions[0]);
+//   Actions.update({ email: "talrofeh@gmail.com" }, { $pull: {actions: { key: ObjectId("5e6f675aeaabed14cc4bbeea") }}}), function(err, result) {
+//     if (err) {
+//       console.log(err);
+//     } else {
+//       console.log(result);
+//     } 
+//   });
+// });
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, function() {

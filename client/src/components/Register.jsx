@@ -1,18 +1,20 @@
-import React, {useState} from "react";
-import {
-  Container,
-  TextField,
-  Button,
-  Grid
-} from "@material-ui/core";
+import React, { useState } from "react";
+import { Container, TextField, Button, Grid } from "@material-ui/core";
 import { Link, useHistory } from "react-router-dom";
 import { GoogleLoginButton } from "react-social-login-buttons";
+import RTL from "./RTL";
+import { createMuiTheme, ThemeProvider } from "@material-ui/core/styles";
+
+const theme = createMuiTheme({
+  direction: "rtl"
+});
 
 function Register() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordApprove, setPasswordApprove] = useState("");
   let history = useHistory();
 
   function handleFirstNameChange(event) {
@@ -31,66 +33,73 @@ function Register() {
     setPassword(event.target.value);
   }
 
-  function handleSubmit(event){
+  function handlePasswordApproveChange(event) {
+    setPasswordApprove(event.target.value);
+  }
+
+  function handleSubmit(event) {
     event.preventDefault();
-    let url = "http://localhost:4000/Register";
+    let url = process.env.REACT_APP_SERVER_URL + "/Register";
     let myData = {
       firstName: firstName,
       lastName: lastName,
       email: email,
-      password: password
+      password: password,
+      passwordApprove: passwordApprove
     };
-    fetch(url, { 
-      method: "POST", 
+    fetch(url, {
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      credentials: 'include',
+      credentials: "include",
       body: JSON.stringify(myData)
     })
-    .then(response => 
-      response.text().then(answer => {
-        if (answer === "success") {
-          alert("User registered succesfully!");
-          history.push("/");
-        } else {
-          alert(answer);
-        }
-      })
-    )
-    .catch(error => console.log("error", error));
+      .then(response =>
+        response.text().then(answer => {
+          if (answer === "success") {
+            alert("משתמש נרשם בהצלחה!");
+            history.push("/");
+          } else {
+            alert(answer);
+          }
+        })
+      )
+      .catch(error => console.log("error", error));
   }
 
   return (
-    <Container maxWidth="xs">
-        <form onSubmit={handleSubmit}>
-        <Grid container>
-          <Grid item xs={6} >
-              <TextField
-                    variant="outlined"
-                    margin="normal"
-                    required
-                    id="first-name"
-                    type="text"
-                    label="First Name"
-                    name="firstName"
-                    autoFocus
-                    value={firstName}
-                    onChange={handleFirstNameChange}
-                  />
-                  </Grid>
-                  <Grid item xs={6}>
-                  <TextField
-                    variant="outlined"
-                    margin="normal"
-                    required
-                    id="last-name"
-                    type="text"
-                    label="Last Name"
-                    name="lastName"
-                    value={lastName}
-                    onChange={handleLastNameChange}
-                  />
-                  </Grid>
-                  </Grid>
+    <RTL>
+      <Container maxWidth="xs">
+        <ThemeProvider theme={theme}>
+          <form onSubmit={handleSubmit}>
+            <Grid container>
+              <Grid item xs={6}>
+                <TextField
+                  variant="outlined"
+                  margin="normal"
+                  required
+                  id="first-name"
+                  type="text"
+                  label="שם פרטי"
+                  name="firstName"
+                  autoFocus
+                  value={firstName}
+                  onChange={handleFirstNameChange}
+                />
+              </Grid>
+              <Grid item xs={6}>
+                <TextField
+                  variant="outlined"
+                  margin="normal"
+                  required
+                  id="last-name"
+                  type="text"
+                  label="שם משפחה"
+                  name="lastName"
+                  value={lastName}
+                  onChange={handleLastNameChange}
+                />
+              </Grid>
+            </Grid>
             <TextField
               variant="outlined"
               margin="normal"
@@ -98,7 +107,7 @@ function Register() {
               fullWidth
               id="email"
               type="email"
-              label="Email Address"
+              label="כתובת מייל"
               name="email"
               autoComplete="email"
               value={email}
@@ -110,31 +119,42 @@ function Register() {
               required
               fullWidth
               name="password"
-              label="Password"
+              label="סיסמא"
               type="password"
               id="password"
               autoComplete="current-password"
               value={password}
               onChange={handlePasswordChange}
             />
-          <Button type="submit" fullWidth
-            variant="contained"
-            color="primary" >
-            Sign Up
-          </Button>
-          <Grid container>
-            <Grid item xs>
-            <Button
-                  component={Link}
-                  to="/"
-              >{"Have a passoword? Login"}</Button>
+            <TextField
+              variant="outlined"
+              margin="normal"
+              required
+              fullWidth
+              name="password-approve"
+              label="אשר סיסמא"
+              type="password"
+              id="password-approve"
+              value={passwordApprove}
+              onChange={handlePasswordApproveChange}
+            />
+            <Button type="submit" fullWidth variant="contained" color="primary">
+              הירשם
+            </Button>
+            <Grid container>
+              <Grid item xs>
+                <Button component={Link} to="/">
+                  {"יש לך סיסמא? התחבר"}
+                </Button>
+              </Grid>
             </Grid>
-          </Grid>
-        </form>
+          </form>
+        </ThemeProvider>
         <Link to="/auth/google">
-          <GoogleLoginButton />
+          <GoogleLoginButton align="center" text="הירשם עם גוגל"/>
         </Link>
-    </Container>
+      </Container>
+    </RTL>
   );
 }
 

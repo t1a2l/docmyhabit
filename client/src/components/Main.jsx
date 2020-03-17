@@ -1,13 +1,30 @@
 import React, { useState, useEffect } from "react";
 import { Link, useHistory } from "react-router-dom";
-import { Button, Grid } from "@material-ui/core";
+import { Button } from "@material-ui/core";
+import RTL from "./RTL";
+import { createMuiTheme, ThemeProvider, makeStyles } from "@material-ui/core/styles";
+
+const theme = createMuiTheme({
+  direction: "rtl"
+});
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    '& > *': {
+      margin: theme.spacing(3),
+    },
+  },
+}));
 
 function Main() {
   const [mainPage, setMainPage] = useState(false);
   let history = useHistory();
+  const classes = useStyles();
 
   useEffect(() => {
-    let url = "http://localhost:4000/Main";
+    
+    let url = process.env.REACT_APP_SERVER_URL + "/Main";
+    console.log(url);
     fetch(url, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
@@ -16,7 +33,7 @@ function Main() {
       .then(response =>
         response.text().then(answer => {
             if(answer === "fail") {
-              history.push("/Login");
+              goToLogin();
             } else {
               setMainPage(true);
             }
@@ -24,9 +41,13 @@ function Main() {
       .catch(error => console.log("error", error));
   }, []);
 
+  function goToLogin() {
+    history.push("/Login");
+  }
+
   function HandleSubmit(event) {
     event.preventDefault();
-    let url = "http://localhost:4000/Logout";
+    let url = process.env.REACT_APP_SERVER_URL + "/Logout";
     fetch(url, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
@@ -36,7 +57,7 @@ function Main() {
         response.text().then(answer => {
           if (answer === "success") {
             alert("Signed out successfully");
-            history.push("/");
+            window.location.reload();
           } else {
             alert(answer);
           }
@@ -46,25 +67,24 @@ function Main() {
   }
 
   return (
-    <div>{mainPage &&  <Grid container sapcing={3}>
-      <Grid item sm>
-        <Button component={Link} to="/doc-new-action">
-          Document a new action
+    <RTL>
+    <ThemeProvider theme={theme}>
+    <div>{mainPage &&  
+      <div className={classes.root} align="center">
+        <Button component={Link} to="/doc-new-action" variant="contained" color="primary">
+          תעד פעולה חדשה
         </Button>
-      </Grid>
-      <Grid item sm>
-        <Button component={Link} to="/all-actions">
-          Show all actions Actions
+        <Button component={Link} to="/all-actions" variant="contained" color="primary">
+          הצג את כל התיעודים
         </Button>
-      </Grid>
-      <Grid item sm>
-        <Button onClick={HandleSubmit}>
-          Sign Out
+        <Button onClick={HandleSubmit} variant="contained">
+          התנתק
         </Button>
-      </Grid>
-    </Grid>} 
-    
+        </div>
+        } 
     </div>
+    </ThemeProvider>
+    </RTL>
   );
 }
 

@@ -6,7 +6,7 @@ function Footer() {
 
   return (
     <footer align="center">
-      <p>Copyright ⓒ {year}</p>
+      <p>Copyright ⓒ {year} DocMyHabit. All Rights Reserved</p>
     </footer>
   );
 }

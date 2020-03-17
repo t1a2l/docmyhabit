@@ -1,9 +1,25 @@
 import React from "react";
+import { Container, Typography } from "@material-ui/core";
+import { makeStyles  } from "@material-ui/core/styles";
+
+const useStyles = makeStyles(theme => ({
+  heroContent: {
+    padding: theme.spacing(8, 0, 6)
+  }
+}));
 
 function Header() {
+  const classes = useStyles();
   return (
     <header>
-      <h1>DocMyHabit</h1>
+    <Container maxWidth="sm" component="main" className={classes.heroContent}>
+        <Typography component="h1" variant="h2" align="center" color="textPrimary" gutterBottom>
+          DocMyHabit
+        </Typography>
+        <Typography variant="h5" align="center" color="textSecondary" component="p">
+          תעד את ההרגלים שלך
+        </Typography>
+      </Container>
     </header>
   );
 }
