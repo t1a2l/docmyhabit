@@ -38,7 +38,7 @@ function DocAction() {
   const [actionContext, setActionContext] = useState("");
 
   useEffect(() => {
-    let url = process.env.REACT_APP__SERVER_URL + "/newActionInfo";
+    let url = process.env.REACT_APP_SERVER_URL + "/newActionInfo";
     fetch(url, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
