@@ -55,7 +55,7 @@ function DocAction() {
 
   function handleSubmit(event) {
     event.preventDefault();
-    let url = process.env.REACT_APP__SERVER_URL + "/newActionInfo";
+    let url = process.env.REACT_APP_SERVER_URL + "/newActionInfo";
     let myAction = {
       actionType: chosenActionType,
       actionDateTime: actionDateTime,
