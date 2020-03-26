@@ -22,6 +22,7 @@ function Register() {
   const [passwordApprove, setPasswordApprove] = useState("");
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState({title: "", content: ""});
+  const [success, setSuccess] = useState(false);
   let history = useHistory();
 
   useEffect(() => {
@@ -32,7 +33,10 @@ function Register() {
 
   function closeDialog() {
     setOpen(false);
-    history.push("/");
+    if(success) {
+      history.push("/");
+      setSuccess(false);
+    }
   }
 
   function handleFirstNameChange(event) {
@@ -74,9 +78,10 @@ function Register() {
       .then(response =>
         response.text().then(answer => {
           if (answer === "success") {
-            setMessage({title: "", content: "משתמש נרשם בהצלחה!"});
+            setMessage({title: "הודעה", content: "משתמש נרשם בהצלחה!"});
+            setSuccess(true);
           } else {
-            setMessage({title: "", content: answer});
+            setMessage({title: "שגיאה", content: answer});
           }
         })
       )
