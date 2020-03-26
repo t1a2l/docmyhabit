@@ -25,11 +25,15 @@ function Register() {
   let history = useHistory();
 
   useEffect(() => {
-    setOpen(true);
-    if(open && message.content === "משתמש נרשם בהצלחה!"){
-      history.push("/");
+    if (message.title !== "" && message.content !== "") {
+      setOpen(true);
     }
-  }, [message, open, history ]);
+  }, [message]);
+
+  function closeDialog() {
+    setOpen(false);
+    history.push("/");
+  }
 
   function handleFirstNameChange(event) {
     setFirstName(event.target.value);
@@ -172,6 +176,7 @@ function Register() {
         dialogTitle={message.title}
         dialogContent={message.content}
         open={open}
+        closeDialog={closeDialog}
       />
       </Container>
     </RTL>
