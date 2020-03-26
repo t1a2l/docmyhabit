@@ -1,21 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import clsx from 'clsx';
-import PropTypes from 'prop-types';
-import { lighten, makeStyles } from '@material-ui/core/styles';
-import DeleteIcon from '@material-ui/icons/Delete';
-import FilterListIcon from '@material-ui/icons/FilterList';
-import ClearIcon from '@material-ui/icons/Clear';
+import React, { useState, useEffect, useCallback } from "react";
+import clsx from "clsx";
+import { useHistory } from "react-router-dom";
+import PropTypes from "prop-types";
+import { lighten, makeStyles } from "@material-ui/core/styles";
+import DeleteIcon from "@material-ui/icons/Delete";
+import FilterListIcon from "@material-ui/icons/FilterList";
+import ClearIcon from "@material-ui/icons/Clear";
+import AddIcon from "@material-ui/icons/Add";
+import SettingsIcon from "@material-ui/icons/Settings";
 import {
   FormControl,
   InputLabel,
-  TextField,
   Select,
   MenuItem,
   Toolbar,
   Typography,
   IconButton,
-  Tooltip
-} from '@material-ui/core';
+  Tooltip,
+  Menu
+} from "@material-ui/core";
+import { DateTimePicker, MuiPickersUtilsProvider } from "@material-ui/pickers";
+import DateFnsUtils from "@date-io/date-fns";
+import heLocale from "date-fns/locale/he";
 
 ActionTableToolbar.propTypes = {
   numSelected: PropTypes.number.isRequired,
@@ -26,184 +32,266 @@ ActionTableToolbar.propTypes = {
 };
 
 const useToolbarStyles = makeStyles(theme => ({
-    root: {
-      paddingLeft: theme.spacing(2),
-      paddingRight: theme.spacing(1),
-    },
-    highlight:
-      theme.palette.type === 'light'
-        ? {
-            color: theme.palette.secondary.main,
-            backgroundColor: lighten(theme.palette.secondary.light, 0.85),
-          }
-        : {
-            color: theme.palette.text.primary,
-            backgroundColor: theme.palette.secondary.dark,
-          },
-    title: {
-      flex: '1 1 50%',
-    },
+  root: {
+    paddingLeft: theme.spacing(2),
+    paddingRight: theme.spacing(1),
+    display: "flex",
+    justifyContent: "space-between"
+  },
+  highlight:
+    theme.palette.type === "light"
+      ? {
+          color: theme.palette.secondary.main,
+          backgroundColor: lighten(theme.palette.secondary.light, 0.85)
+        }
+      : {
+          color: theme.palette.text.primary,
+          backgroundColor: theme.palette.secondary.dark
+        },
+  title: {
+    flex: "1 1 50%"
+  },
+  menu: {
+    display: "flex",
+    direction: "row"
+  }
 }));
 
 function ActionTableToolbar(props) {
-    const classes = useToolbarStyles();
-    const { numSelected, onRequestFilter, onRequestDelete, actionTypes, locationTypes } = props;
-    const [startDateTime, setStartDateTime] = useState("");
-    const [endDateTime, setEndDateTime] = useState("");
-    const [chosenFilterActionType, setChosenFilterActionType] = useState("");
-    const [chosenFilterActionLocation, setChosenFilterActionLocation] = useState("");
-    const [clearRows, setClearRows] = useState(false);
-    const [deleteRows, setDeleteRows] = useState(false);
+  const classes = useToolbarStyles();
+  const {
+    numSelected,
+    onRequestFilter,
+    onRequestDelete,
+    actionTypes,
+    locationTypes
+  } = props;
+  const [startDateTime, setStartDateTime] = useState(null);
+  const [endDateTime, setEndDateTime] = useState(null);
+  const [chosenFilterActionType, setChosenFilterActionType] = useState("");
+  const [chosenFilterActionLocation, setChosenFilterActionLocation] = useState(
+    ""
+  );
+  const [clearRows, setClearRows] = useState(false);
+  const [deleteRows, setDeleteRows] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
+  let history = useHistory();
 
-    useEffect(() => {
-      if(clearRows) {
-        createFilterHandler();
-        setClearRows(false);
-      }
-      if(deleteRows) {
-        createDeleteHandler();
-        setDeleteRows(false);
-      }
-   }, [clearRows, deleteRows]);
-
-    function handleDelete() {
-      setDeleteRows(true);
-    }
-
-    function handleClear() {
-      setStartDateTime("");
-      setEndDateTime("");
-      setChosenFilterActionType("");
-      setChosenFilterActionLocation("");
-      setClearRows(true);     
-    }
-
-    function createFilterHandler() {
-      let filter = {
-        dateStart: startDateTime,
-        dateEnd: endDateTime,
-        actionType: chosenFilterActionType,
-        actionLocation: chosenFilterActionLocation,
-        clear: clearRows
-      }
-      onRequestFilter(filter);
+  const createFilterHandler = useCallback(() => {
+    let filter = {
+      dateStart: startDateTime,
+      dateEnd: endDateTime,
+      actionType: chosenFilterActionType,
+      actionLocation: chosenFilterActionLocation,
+      clear: clearRows
     };
+    onRequestFilter(filter);
+  }, [
+    startDateTime,
+    endDateTime,
+    chosenFilterActionType,
+    chosenFilterActionLocation,
+    clearRows,
+    onRequestFilter
+  ]);
 
-    function createDeleteHandler() {
-      onRequestDelete();
-    };
+  const createDeleteHandler = useCallback(() => {
+    onRequestDelete();
+  }, [onRequestDelete]);
 
-    function handleStartDateTimeChange(event) {
-      setStartDateTime(event.target.value);
+  useEffect(() => {
+    if (clearRows) {
+      createFilterHandler();
+      setClearRows(false);
     }
-
-    function handleEndDateTimeChange(event) {
-      setEndDateTime(event.target.value);
+    if (deleteRows) {
+      createDeleteHandler();
+      setDeleteRows(false);
     }
+  }, [clearRows, deleteRows, createFilterHandler, createDeleteHandler]);
 
-    function handleFilterActionTypeChange(event) {
-      setChosenFilterActionType(event.target.value);
-    }
+  function handleDelete() {
+    setDeleteRows(true);
+  }
 
-    function handleFilterActionLocationChange(event) {
-      setChosenFilterActionLocation(event.target.value);
-    }
+  function handleClear() {
+    setStartDateTime(null);
+    setEndDateTime(null);
+    setChosenFilterActionType("");
+    setChosenFilterActionLocation("");
+    setClearRows(true);
+  }
 
-    
-  
-    return (
-      <Toolbar
-        className={clsx(classes.root, {
-          [classes.highlight]: numSelected > 0,
-        })}
-      >
-        {numSelected > 0 ? (
-          <Typography className={classes.title} color="inherit" variant="subtitle1">
-            {numSelected} selected
-          </Typography>
-        ) : (
-          <Typography className={classes.title} variant="h5" id="tableTitle" color="textPrimary">
+  function handleFilterActionTypeChange(event) {
+    setChosenFilterActionType(event.target.value);
+  }
+
+  function handleFilterActionLocationChange(event) {
+    setChosenFilterActionLocation(event.target.value);
+  }
+
+  function handleAdd() {
+    history.push("/doc-new-action");
+  }
+
+  function handleAddAction() {
+    history.push({
+      pathname: "/add-types",
+      state: { type: "פעולה" }
+    });
+  }
+
+  function handleAddLocation() {
+    history.push({
+      pathname: "/add-types",
+      state: { type: "מיקום" }
+    });
+  }
+
+  function handleAdvancedSettings() {
+    console.log("הגדרות מתקדמות");
+  }
+
+  function handleSettings(event) {
+    setAnchorEl(event.currentTarget);
+  }
+
+  function handleSettingsClose() {
+    setAnchorEl(null);
+  }
+
+  return (
+    <Toolbar
+      className={clsx(classes.root, {
+        [classes.highlight]: numSelected > 0
+      })}
+    >
+      {numSelected > 0 ? (
+        <Typography
+          className={classes.title}
+          color="inherit"
+          variant="subtitle1"
+        >
+          {numSelected} selected
+        </Typography>
+      ) : (
+        <div className={classes.menu}>
+          <Typography
+            className={classes.title}
+            variant="h5"
+            id="tableTitle"
+            color="textPrimary"
+            style={{ marginTop: "6px" }}
+          >
             הרגלים
           </Typography>
-        )}
-        {numSelected > 0 ? (
-          <Tooltip title="Delete">
-            <IconButton aria-label="delete" onClick={handleDelete}>
-              <DeleteIcon />
-            </IconButton>
-          </Tooltip>
-        ) : (
-          <div>
-          <TextField
-            id="datetime-local-start"
-            style={{minWidth: 200, marginLeft: 50, marginTop: 10}}
-            label="משעה ותאריך"
-            type="datetime-local"
-            value={startDateTime}
-            onChange={handleStartDateTimeChange}
-            InputLabelProps={{
-              shrink: true
-            }}
-          />
-          <TextField
-            id="datetime-local-end"
-            style={{minWidth: 200, marginLeft: 50, marginTop: 10}}
-            label="עד שעה ותאריך"
-            type="datetime-local"
-            value={endDateTime}
-            onChange={handleEndDateTimeChange}
-            InputLabelProps={{
-              shrink: true
-            }}
-          />
-          <FormControl  style={{marginTop: 10}}>
-          <InputLabel id="action-type">פעולה</InputLabel>
-          <Select
+          <IconButton aria-label="add" onClick={handleAdd}>
+            <AddIcon />
+          </IconButton>
+          <IconButton aria-label="settings" onClick={handleSettings}>
+            <SettingsIcon />
+          </IconButton>
+          <Menu
+            id="simple-menu"
+            anchorEl={anchorEl}
+            keepMounted
+            open={Boolean(anchorEl)}
+            onClose={handleSettingsClose}
+          >
+            <MenuItem onClick={handleAddAction}>נהל פעולות</MenuItem>
+            <MenuItem onClick={handleAddLocation}>נהל מיקומים</MenuItem>
+            <MenuItem onClick={handleAdvancedSettings}>
+              אפשרויות מתקדמות
+            </MenuItem>
+          </Menu>
+        </div>
+      )}
+      {numSelected > 0 ? (
+        <Tooltip title="Delete">
+          <IconButton aria-label="delete" onClick={handleDelete}>
+            <DeleteIcon />
+          </IconButton>
+        </Tooltip>
+      ) : (
+        <div>
+          <FormControl style={{ marginTop: 10 }}>
+            <MuiPickersUtilsProvider utils={DateFnsUtils} locale={heLocale}>
+              <DateTimePicker
+                label="משעה ותאריך"
+                ampm={false}
+                value={startDateTime}
+                onChange={setStartDateTime}
+                style={{ width: "60%" }}
+              />
+            </MuiPickersUtilsProvider>
+          </FormControl>
+          <FormControl style={{ marginTop: 10 }}>
+            <MuiPickersUtilsProvider utils={DateFnsUtils} locale={heLocale}>
+              <DateTimePicker
+                label="עד שעה ותאריך"
+                ampm={false}
+                value={endDateTime}
+                onChange={setEndDateTime}
+                style={{ width: "60%" }}
+              />
+            </MuiPickersUtilsProvider>
+          </FormControl>
+          <FormControl style={{ marginTop: 10 }}>
+            <InputLabel id="action-type">פעולה</InputLabel>
+            <Select
               id="action-type"
-              style={{minWidth: 80, marginLeft: 80 }}
+              style={{ minWidth: 80, marginLeft: 80 }}
               value={chosenFilterActionType}
               onChange={handleFilterActionTypeChange}
             >
               {actionTypes.map((action, index) => {
                 return (
-                  <MenuItem value={action.actionName} key={index}>
-                    {action.actionName}
+                  <MenuItem value={action} key={index}>
+                    {action}
                   </MenuItem>
                 );
               })}
             </Select>
-            </FormControl>
-            <FormControl style={{marginTop: 10}}>
+          </FormControl>
+          <FormControl style={{ marginTop: 10 }}>
             <InputLabel id="location-type">מיקום</InputLabel>
-          <Select
+            <Select
               id="location-type"
-              style={{minWidth: 80, marginLeft: 50}}
+              style={{ minWidth: 80, marginLeft: 50 }}
               value={chosenFilterActionLocation}
               onChange={handleFilterActionLocationChange}
             >
               {locationTypes.map((location, index) => {
                 return (
-                  <MenuItem value={location.locationName} key={index}>
-                    {location.locationName}
+                  <MenuItem value={location} key={index}>
+                    {location}
                   </MenuItem>
                 );
               })}
             </Select>
-            </FormControl>
+          </FormControl>
           <Tooltip title="Filter list">
-            <IconButton aria-label="filter list" onClick={createFilterHandler} style={{marginTop: 10}}>
-              <FilterListIcon style={{marginTop: 10}} />
+            <IconButton
+              aria-label="filter list"
+              onClick={createFilterHandler}
+              style={{ marginTop: 10 }}
+            >
+              <FilterListIcon style={{ marginTop: 10 }} />
             </IconButton>
           </Tooltip>
           <Tooltip title="Clear filters">
-            <IconButton aria-label="clear filters" onClick={handleClear} style={{marginTop: 10}}>
-              <ClearIcon style={{marginTop: 10}} />
+            <IconButton
+              aria-label="clear filters"
+              onClick={handleClear}
+              style={{ marginTop: 10 }}
+            >
+              <ClearIcon style={{ marginTop: 10 }} />
             </IconButton>
           </Tooltip>
-          </div>
-        )}
-      </Toolbar>
-    );
-};
+        </div>
+      )}
+    </Toolbar>
+  );
+}
 
 export default ActionTableToolbar;

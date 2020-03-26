@@ -8,23 +8,37 @@ import {
   MenuItem,
   InputLabel,
   FormControl,
-  Box
+  Grid
 } from "@material-ui/core";
+import {
+  DatePicker,
+  TimePicker,
+  MuiPickersUtilsProvider
+} from "@material-ui/pickers";
+import DateFnsUtils from "@date-io/date-fns";
+import heLocale from "date-fns/locale/he";
 import RTL from "./RTL";
 import { createMuiTheme, ThemeProvider } from "@material-ui/core/styles";
-import { Link } from "react-router-dom";
+import MessageDialog from "./MessageDialog";
 
 const theme = createMuiTheme({
   direction: "rtl"
 });
 
 const useStyles = makeStyles(theme => ({
+  root: {
+    flexGrow: 1
+  },
   formControl: {
     margin: theme.spacing(1),
     minWidth: 120
   },
   selectEmpty: {
     marginTop: theme.spacing(2)
+  },
+  flexContainer: {
+    display: "flex",
+    flexDirection: "column"
   }
 }));
 
@@ -32,13 +46,15 @@ function DocAction() {
   const classes = useStyles();
   const [actionTypes, setActionTypes] = useState([]);
   const [chosenActionType, setChosenActionType] = useState("");
-  const [actionDateTime, setActionDateTime] = useState("");
+  const [actionDateTime, setActionDateTime] = useState(new Date());
   const [locationTypes, setLocationTypes] = useState([]);
   const [chosenLocationType, setChosenLocationType] = useState("");
   const [actionContext, setActionContext] = useState("");
+  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState({ title: "", content: "" });
 
   useEffect(() => {
-    let url = process.env.REACT_APP_SERVER_URL + "/newActionInfo";
+    let url = process.env.REACT_APP_SERVER_URL + "/typesInfo";
     fetch(url, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
@@ -46,12 +62,22 @@ function DocAction() {
     })
       .then(response =>
         response.json().then(answer => {
-          setActionTypes(answer[0]);
-          setLocationTypes(answer[1]);
+          setActionTypes(answer.actionTypes);
+          setLocationTypes(answer.locationTypes);
         })
       )
       .catch(error => console.log("error", error));
   }, []);
+
+  useEffect(() => {
+    if (message.title !== "" && message.content !== "") {
+      setOpen(true);
+    }
+  }, [message]);
+
+  function closeDialog() {
+    setOpen(false);
+  }
 
   function handleSubmit(event) {
     event.preventDefault();
@@ -71,13 +97,13 @@ function DocAction() {
       .then(response =>
         response.text().then(answer => {
           if (answer === "success") {
-            alert("פעולה תועדה!");
+            setMessage({ title: "הודעה", content: "פעולה תועדה!" });
             setChosenActionType("");
-            setActionDateTime("");
+            setActionDateTime(new Date());
             setChosenLocationType("");
             setActionContext("");
           } else {
-            alert(answer);
+            setMessage({ title: "שגיאה", content: answer });
           }
         })
       )
@@ -86,10 +112,6 @@ function DocAction() {
 
   function handleTypeChange(event) {
     setChosenActionType(event.target.value);
-  }
-
-  function handleDateTimeChange(event) {
-    setActionDateTime(event.target.value);
   }
 
   function handleLocationChange(event) {
@@ -102,81 +124,102 @@ function DocAction() {
 
   return (
     <RTL>
-    <Container maxWidth="xs">
-      <ThemeProvider theme={theme}>
-        <form onSubmit={handleSubmit} className={classes.container}>
-          <FormControl className={classes.formControl}>
-            <InputLabel id="action-type">פעולה</InputLabel>
-            <Select
-              required
-              id="action-type"
-              autoFocus
-              value={chosenActionType}
-              onChange={handleTypeChange}
-            >
-              {actionTypes.map((action, index) => {
-                return (
-                  <MenuItem value={action.actionName} key={index}>
-                    {action.actionName}
-                  </MenuItem>
-                );
-              })}
-            </Select>
-          </FormControl>
-
-          <TextField
-            id="datetime-local"
-            label="שעה ותאריך"
-            type="datetime-local"
-            value={actionDateTime}
-            onChange={handleDateTimeChange}
-            InputLabelProps={{
-              shrink: true
-            }}
-          />
-          <FormControl className={classes.formControl}>
-            <InputLabel id="action-type">מיקום</InputLabel>
-            <Select
-              required
-              id="location-type"
-              autoFocus
-              value={chosenLocationType}
-              onChange={handleLocationChange}
-            >
-              {locationTypes.map((location, index) => {
-                return (
-                  <MenuItem value={location.locationName} key={index}>
-                    {location.locationName}
-                  </MenuItem>
-                );
-              })}
-            </Select>
-          </FormControl>
-          <TextField
-            variant="outlined"
-            margin="normal"
-            required
-            id="context-input"
-            type="text"
-            multiline
-            rows="6"
-            value={actionContext}
-            onChange={handleContextChange}
-          />
-          <Button type="submit" fullWidth variant="contained" color="primary">
-            תעד פעולה חדשה
-          </Button>
-        </form>
-        <Box justifyContent="center">
-          <Button
-                    component={Link}
-                    to="/"
-                    variant="contained"
-                    style={{marginTop: "10px"}}
-                >{"חזרה לתפריט הראשי"}</Button>
-        </Box>
-      </ThemeProvider>
-    </Container>
+      <Container maxWidth="xs">
+        <ThemeProvider theme={theme}>
+          <Grid container className={classes.root}>
+            <Grid item xs>
+              <form onSubmit={handleSubmit} className={classes.flexContainer}>
+                <FormControl className={classes.formControl}>
+                  <MuiPickersUtilsProvider
+                    utils={DateFnsUtils}
+                    locale={heLocale}
+                  >
+                    <DatePicker
+                      value={actionDateTime}
+                      onChange={setActionDateTime}
+                    />
+                  </MuiPickersUtilsProvider>
+                </FormControl>
+                <FormControl className={classes.formControl}>
+                  <MuiPickersUtilsProvider
+                    utils={DateFnsUtils}
+                    locale={heLocale}
+                  >
+                    <TimePicker
+                      value={actionDateTime}
+                      onChange={setActionDateTime}
+                      ampm={false}
+                    />
+                  </MuiPickersUtilsProvider>
+                </FormControl>
+                <FormControl className={classes.formControl}>
+                  <InputLabel id="action-type">פעולה</InputLabel>
+                  <Select
+                    required
+                    id="action-type"
+                    autoFocus
+                    value={chosenActionType}
+                    onChange={handleTypeChange}
+                  >
+                    {actionTypes.map((action, index) => {
+                      return (
+                        <MenuItem value={action} key={index}>
+                          {action}
+                        </MenuItem>
+                      );
+                    })}
+                  </Select>
+                </FormControl>
+                <FormControl className={classes.formControl}>
+                  <InputLabel id="action-type">מיקום</InputLabel>
+                  <Select
+                    required
+                    id="location-type"
+                    autoFocus
+                    value={chosenLocationType}
+                    onChange={handleLocationChange}
+                  >
+                    {locationTypes.map((location, index) => {
+                      return (
+                        <MenuItem value={location} key={index}>
+                          {location}
+                        </MenuItem>
+                      );
+                    })}
+                  </Select>
+                </FormControl>
+                <FormControl className={classes.formControl}>
+                  <TextField
+                    variant="outlined"
+                    margin="normal"
+                    required
+                    id="context-input"
+                    type="text"
+                    multiline
+                    rows="6"
+                    value={actionContext}
+                    onChange={handleContextChange}
+                  />
+                </FormControl>
+                <Button
+                  type="submit"
+                  fullWidth
+                  variant="contained"
+                  color="primary"
+                >
+                  תעד פעולה חדשה
+                </Button>
+              </form>
+            </Grid>
+          </Grid>
+        </ThemeProvider>
+        <MessageDialog
+          dialogTitle={message.title}
+          dialogContent={message.content}
+          open={open}
+          closeDialog={closeDialog}
+        />
+      </Container>
     </RTL>
   );
 }

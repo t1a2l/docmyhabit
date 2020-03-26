@@ -1,4 +1,5 @@
 import React from "react";
+import { Typography } from "@material-ui/core";
 
 function Footer() {
   const d = new Date();
@@ -6,7 +7,9 @@ function Footer() {
 
   return (
     <footer align="center">
-      <p>Copyright ⓒ {year} DocMyHabit. All Rights Reserved</p>
+      <Typography component="h6" variant="h6" align="center" color="textPrimary" gutterBottom>
+        Copyright ⓒ {year} DocMyHabit. All Rights Reserved
+      </Typography>
     </footer>
   );
 }

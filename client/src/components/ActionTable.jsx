@@ -6,7 +6,6 @@ import { createMuiTheme, ThemeProvider } from "@material-ui/core/styles";
 import { makeStyles } from "@material-ui/core/styles";
 import {
   Table,
-  Button,
   TableBody,
   TableCell,
   TableContainer,
@@ -18,11 +17,10 @@ import {
   Switch,
   Box
 } from "@material-ui/core";
-import { Link } from "react-router-dom";
+import MessageDialog from "./MessageDialog";
 
 const theme = createMuiTheme({
-  direction: "rtl",
-  backgroundColor: "red"
+  direction: "rtl"
 });
 
 const useStyles = makeStyles(theme => ({
@@ -63,6 +61,9 @@ function ActionTable() {
   const [originalList, setOriginalList] = useState([]);
   const [actionTypes, setActionTypes] = useState([]);
   const [locationTypes, setLocationTypes] = useState([]);
+  const [updateDeleted, setUpdateDeleted] = useState(0);
+  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState({title: "", content: ""});
 
   useEffect(() => {
     let url = process.env.REACT_APP_SERVER_URL + "/Actions";
@@ -73,36 +74,38 @@ function ActionTable() {
     })
       .then(response =>
         response.json().then(answer => {
-          if (answer.actions === []) {
-            alert("אין תיעודים!");
+          if (answer === []) {
+            setMessage({title: "שגיאה", content: "אין תיעודים!"});
           } else {
-            setRows(answer.actions);
-            setOriginalList(answer.actions);
-            getSelectData();
+            setRows(answer);
+            setOriginalList(answer);
+            let typesUrl = process.env.REACT_APP_SERVER_URL + "/typesInfo";
+            fetch(typesUrl, {
+              method: "GET",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include"
+            })
+              .then(response =>
+                response.json().then(answer => {
+                  setActionTypes(answer.actionTypes);
+                  setLocationTypes(answer.locationTypes);
+                })
+              )
+              .catch(error => console.log("error", error));
           }
         })
       )
       .catch(error => console.log("error", error));
-  }, []);
+  }, [updateDeleted]);
 
   useEffect(() => {
-    console.log(selected);
-  }, [selected]);
+    if(message.title !== "" && message.content !== "") {
+      setOpen(true);
+    }
+  }, [message]);
 
-  function getSelectData() {
-    let url = process.env.REACT_APP_SERVER_URL + "/newActionInfo";
-    fetch(url, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include"
-    })
-      .then(response =>
-        response.json().then(answer => {
-          setActionTypes(answer[0]);
-          setLocationTypes(answer[1]);
-        })
-      )
-      .catch(error => console.log("error", error));
+  function closeDialog(){
+    setOpen(false);
   }
 
   function getComparator(order, orderBy) {
@@ -148,17 +151,17 @@ function ActionTable() {
       return;
     }
     if (
-      (filter.dateStart !== "" && filter.dateEnd === "") ||
-      (filter.dateStart === "" && filter.dateEnd !== "")
+      (filter.dateStart !== null && filter.dateEnd === null) ||
+      (filter.dateStart === null && filter.dateEnd !== null)
     ) {
-      alert("אחד התאריכים לא מלא!");
+      setMessage({title: "שגיאה", content: "אחד התאריכים לא מלא!"});
       return;
-    } else if (filter.dateStart !== "" && filter.dateEnd !== "") {
+    } else if (filter.dateStart !== null && filter.dateEnd !== null) {
       console.log("1");
       let dStart = new Date(filter.dateStart);
       let dEnd = new Date(filter.dateEnd);
       if (dStart <= dEnd) {
-        filteredDateRows = rows.filter(
+        filteredDateRows = originalList.filter(
           item =>
             dStart <= new Date(item.actionDateTime) &&
             new Date(item.actionDateTime) <= dEnd
@@ -175,15 +178,16 @@ function ActionTable() {
         }
         setRows(filteredDateRows);
       } else {
-        alert("תאריך הסיום גדול מתאריך ההתחלה");
+        setMessage({title: "שגיאה", content: "תאריך הסיום גדול מתאריך ההתחלה"});
         return;
       }
     } else {
       if (filter.actionType !== "") {
         console.log("2");
-        filteredDateRows = rows.filter(
+        filteredDateRows = originalList.filter(
           item => item.actionType === filter.actionType
         );
+        console.log(filteredDateRows);
         if (filter.actionLocation !== "") {
           filteredDateRows = filteredDateRows.filter(
             item => item.actionLocation === filter.actionLocation
@@ -191,7 +195,7 @@ function ActionTable() {
         }
         setRows(filteredDateRows);
       } else if (filter.actionLocation !== "") {
-        filteredDateRows = rows.filter(
+        filteredDateRows = originalList.filter(
           item => item.actionLocation === filter.actionLocation
         );
         setRows(filteredDateRows);
@@ -200,25 +204,27 @@ function ActionTable() {
   }
 
   function handleRequestDelete() {
-    console.log("delete");
-    // let url = "http://localhost:4000/DeleteActions";
-    // let myData = {
-    //   actions: selected
-    // };
-    // fetch(url, {
-    //   method: "POST",
-    //   headers: { "Content-Type": "application/json" },
-    //   credentials: "include",
-    //   body: JSON.stringify(myData)
-    // })
-    //   .then(response =>
-    //     response.text().then(answer => {
-    //       if (answer !== "success") {
-    //         alert(answer);
-    //       }
-    //     })
-    //   )
-    //   .catch(error => console.log("error", error));
+    let url = process.env.REACT_APP_SERVER_URL + "/deleteActions";
+    let myData = {
+      actions: selected
+    };
+    fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(myData)
+    })
+      .then(response =>
+        response.text().then(answer => {
+          if (answer !== "success") {
+            setMessage({title: "שגיאה", content: "הייתה בעיה למחוק"});
+          } else {
+            setUpdateDeleted(updateDeleted + 1);
+            setSelected([]);
+          }
+        })
+      )
+      .catch(error => console.log("error", error));
   }
 
   function handleSelectAllClick(event) {
@@ -366,18 +372,27 @@ function ActionTable() {
               page={page}
               onChangePage={handleChangePage}
               onChangeRowsPerPage={handleChangeRowsPerPage}
+              nextIconButtonText="עמוד הבא"
+              backIconButtonText="עמוד קודם"
+              labelRowsPerPage={"שורות בעמוד"}
+              labelDisplayedRows={({ from, to, count }) => `${from}-${to === -1 ? count : to} מתוך ${count !== -1 ? count : ` יותר מ ${to}`}`}
             />
           </Paper>
-          <Box justifyContent="center">
-            <FormControlLabel
-              control={<Switch checked={dense} onChange={handleChangeDense} />}
-              label="Dense padding"
-              style={{ marginRight: "10px" }}
-            />
-            <Button component={Link} to="/" variant="contained">
-              {"חזרה לתפריט הראשי"}
-            </Button>
-          </Box>
+          <div>
+            <Box>
+              <FormControlLabel
+                control={<Switch checked={dense} onChange={handleChangeDense} />}
+                label="ריפוד צפוף"
+                style={{ marginRight: "10px"}}
+              />
+            </Box>
+          </div>
+          <MessageDialog
+            dialogTitle={message.title}
+            dialogContent={message.content}
+            open={open}
+            closeDialog={closeDialog}
+          />
         </ThemeProvider>
       </div>
     </RTL>

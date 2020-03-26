@@ -1,5 +1,4 @@
 require("dotenv").config();
-const types = require('./types');
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
@@ -36,6 +35,7 @@ app.use(passport.session());
 
 app.use(function(req, res, next) {
   // Website you wish to allow to connect
+  
   res.setHeader("Access-Control-Allow-Origin", "http://ec2-54-152-212-119.compute-1.amazonaws.com:3000");
 
   // Set to true if you need the website to include cookies in the requests sent
@@ -80,12 +80,10 @@ userSchema.plugin(findOrCreate);
 
 const User = mongoose.model("User", userSchema);
 
-const actionTypeSchema = new mongoose.Schema({
-  actionName: String
-});
-
-const locationTypeSchema = new mongoose.Schema({
-  locationName: String
+const typeSchema = new mongoose.Schema({
+  email: String,
+  actionTypes: Array,
+  locationTypes: Array
 });
 
 const actionSchema = new mongoose.Schema({
@@ -93,21 +91,9 @@ const actionSchema = new mongoose.Schema({
   actions: Array
 });
 
-const ActionType = mongoose.model("ActionType", actionTypeSchema);
-
-const LocationType = mongoose.model("LocationType", locationTypeSchema);
+const Type = mongoose.model("Type", typeSchema);
 
 const Actions = mongoose.model("Action", actionSchema);
-
-types.createType(ActionType, "actionName", "עישון");
-
-types.createType(ActionType, "actionName", "אלכוהול");
-
-types.createType(LocationType, "locationName", "בית");
-
-types.createType(LocationType, "locationName", "עבודה");
-
-types.createType(LocationType, "locationName", "רכב");
 
 passport.use(User.createStrategy());
 
@@ -193,7 +179,19 @@ app.post("/Register", function(req, res) {
       res.send("הרשמה נכשלה!");
     } else {
       passport.authenticate("local")(req, res, function() {
-        res.send("success");
+        Type.findOne({ email: req.user.email }, function(err, result) {
+          if (err) {
+            console.log(err);
+          } else {
+              Type.create({ email: req.user.email, actionTypes: ["עישון", "אלכוהול"], locationTypes: ["בית", "עבודה", "רכב"]}, function(err, result) {
+                if (err) {
+                  res.send(err);
+                } else {
+                  res.send("success");
+                }
+              });
+          }
+        });
       });
     }
   });
@@ -215,21 +213,32 @@ app.post("/Login", function(req, res, next) {
   })(req, res, next);
 });
 
-app.get("/newActionInfo", loggedIn, function(req, res) {
-  let resultsArr = [];
-  ActionType.find({},{actionName:1}, function(err, results){
+app.get("/typesInfo", loggedIn, function(req, res) {
+  Type.findOne({ email: req.user.email }, function(err, results){
     if(err) {
       console.log(err);
     } else {
-      resultsArr.push(results);
-      LocationType.find({},{locationName:1}, function(err, results){
-        if(err) {
-          console.log(err);
-        } else {
-          resultsArr.push(results);
-          res.send(resultsArr);
-        }
-      });
+      res.send(results);
+    }
+  });
+});
+
+app.post("/newType", loggedIn, function(req, res) {
+  Type.updateOne({ email: req.user.email }, {$push: { [req.body.arrayName]: req.body.newTypeName }}, function(err, results){
+    if(err) {
+      console.log(err);
+    } else {
+      res.send("success");
+    }
+  });
+});
+
+app.post("/deleteType", loggedIn, function(req, res) {
+  Type.updateOne({ email: req.user.email }, {$pull: { [req.body.arrayName]: req.body.deleteTypeName }}, function(err, results){
+    if(err) {
+      console.log(err);
+    } else {
+      res.send("success");
     }
   });
 });
@@ -248,6 +257,7 @@ app.post("/newActionInfo", loggedIn, function(req, res) {
           actionDateTime: req.body.actionDateTime,
           actionLocation: req.body.actionLocation,
           actionContext: req.body.actionContext,
+          actionDeleted: false
         
         }] }, function(err, result) {
           if (err) {
@@ -264,7 +274,8 @@ app.post("/newActionInfo", loggedIn, function(req, res) {
             actionType: req.body.actionType, 
             actionDateTime: req.body.actionDateTime,
             actionLocation: req.body.actionLocation,
-            actionContext: req.body.actionContext,          
+            actionContext: req.body.actionContext,
+            actionDeleted: false          
           }}}, function(err, result) {
             if(err) {
               console.log(err);
@@ -282,21 +293,23 @@ app.get("/Actions", loggedIn, function(req, res) {
     if(err) {
       console.log(err);
     } else {
-      res.send(results);
+      let filteredResults = results.actions.filter(item => item.actionDeleted === false);
+      res.send(filteredResults);
     }
   });
 });
 
-// app.post("/DeleteActions", loggedIn, function(req, res) {
-//   console.log(req.body.actions[0]);
-//   Actions.update({ email: "talrofeh@gmail.com" }, { $pull: {actions: { key: ObjectId("5e6f675aeaabed14cc4bbeea") }}}), function(err, result) {
-//     if (err) {
-//       console.log(err);
-//     } else {
-//       console.log(result);
-//     } 
-//   });
-// });
+app.post("/deleteActions", loggedIn, function(req, res) {
+  req.body.actions.forEach(key => {
+    Actions.updateOne({ email: "talrofeh@gmail.com", actions: {$elemMatch: { key: mongoose.Types.ObjectId(key) }}}, { $set: { "actions.$.actionDeleted": true } }, function(err, results){
+      if(err) {
+        console.log(err);
+      } else {
+        res.send("success");
+      }
+    });
+  })
+});
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, function() {

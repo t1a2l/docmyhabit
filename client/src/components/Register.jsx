@@ -1,9 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Container, TextField, Button, Grid } from "@material-ui/core";
 import { Link, useHistory } from "react-router-dom";
-import { GoogleLoginButton } from "react-social-login-buttons";
 import RTL from "./RTL";
 import { createMuiTheme, ThemeProvider } from "@material-ui/core/styles";
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { fab } from '@fortawesome/free-brands-svg-icons';
+import MessageDialog from "./MessageDialog";
+
+library.add(fab);
 
 const theme = createMuiTheme({
   direction: "rtl"
@@ -15,7 +20,16 @@ function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordApprove, setPasswordApprove] = useState("");
+  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState({title: "", content: ""});
   let history = useHistory();
+
+  useEffect(() => {
+    setOpen(true);
+    if(open && message.content === "משתמש נרשם בהצלחה!"){
+      history.push("/");
+    }
+  }, [message, open, history ]);
 
   function handleFirstNameChange(event) {
     setFirstName(event.target.value);
@@ -56,10 +70,9 @@ function Register() {
       .then(response =>
         response.text().then(answer => {
           if (answer === "success") {
-            alert("משתמש נרשם בהצלחה!");
-            history.push("/");
+            setMessage({title: "", content: "משתמש נרשם בהצלחה!"});
           } else {
-            alert(answer);
+            setMessage({title: "", content: answer});
           }
         })
       )
@@ -141,18 +154,25 @@ function Register() {
             <Button type="submit" fullWidth variant="contained" color="primary">
               הירשם
             </Button>
-            <Grid container>
+            <Grid container style={{display: "flex", justifyContent: "space-between"}}>
               <Grid item xs>
-                <Button component={Link} to="/">
-                  {"יש לך סיסמא? התחבר"}
+                <Button component={Link} to="/login" variant="contained" color="default" style={{marginTop: "10px", fontSize: "18px", width: "97%"}}>
+                  {"רשום? התחבר"}
+                </Button>
+              </Grid>
+              <Grid item xs>
+                <Button component={Link} to="/auth/google" variant="contained" style={{marginTop: "10px", width: "100%", backgroundColor: "#de5246", fontSize: "18px"}}>
+                  <FontAwesomeIcon icon={['fab', 'google']} pull="right" color="white"/>{"הירשם עם גוגל"}
                 </Button>
               </Grid>
             </Grid>
           </form>
-        </ThemeProvider>
-        <Link to="/auth/google">
-          <GoogleLoginButton align="center" text="הירשם עם גוגל"/>
-        </Link>
+        </ThemeProvider> 
+        <MessageDialog
+        dialogTitle={message.title}
+        dialogContent={message.content}
+        open={open}
+      />
       </Container>
     </RTL>
   );

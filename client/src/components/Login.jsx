@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Container,
   TextField,
@@ -8,18 +8,36 @@ import {
   Grid
 } from "@material-ui/core";
 import { Link, useHistory } from "react-router-dom";
-import { GoogleLoginButton } from "react-social-login-buttons";
 import RTL from "./RTL";
 import { createMuiTheme, ThemeProvider } from "@material-ui/core/styles";
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { fab } from '@fortawesome/free-brands-svg-icons';
+import MessageDialog from "./MessageDialog";
+
+library.add(fab);
 
 const theme = createMuiTheme({
-  direction: "rtl"
+  direction: "rtl",
+  fontSize: "18px"
 });
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState({title: "", content: ""});
   let history = useHistory();
+
+  useEffect(() => {
+    if(message.title !== "" && message.content !== ""){
+      setOpen(true);
+    }
+  }, [message]);
+
+  function closeDialog(){
+    setOpen(false);
+  }
 
   function handleEmailChange(event) {
     setEmail(event.target.value);
@@ -47,7 +65,7 @@ function Login() {
           if (answer === "success") {
             history.push("/");
           } else {
-            alert(answer);
+            setMessage({title: "שגיאה", content: answer});
           }
         })
       )
@@ -86,32 +104,38 @@ function Login() {
               value={password}
               onChange={handlePasswordChange}
             />
-            <FormControlLabel
-              control={<Checkbox value="remember" color="primary" />}
-              label="זכור אותי"
-            />
-            <Button type="submit" fullWidth variant="contained" color="primary">
+            <div style={{display: "flex", justifyContent: "space-between"}}>
+              <FormControlLabel
+                control={<Checkbox value="remember" color="primary" />}
+                label="זכור אותי"
+              />
+              <Button component={Link} to="">
+                    {"שכחת סיסמא?"}
+              </Button>
+            </div>
+            <Button type="submit" fullWidth variant="contained" color="primary" style={{fontSize: "18px"}}>
               התחבר
             </Button>
-            <Grid container>
+          </form>
+          <Grid container style={{display: "flex", justifyContent: "space-between"}} >
               <Grid item xs>
-                <Button component={Link} to="">
-                  {"שכחת סיסמא?"}
-                </Button>
-              </Grid>
-            </Grid>
-            <Grid container>
-              <Grid item xs>
-                <Button component={Link} to="/register">
+                <Button component={Link} to="/register" variant="contained" color="default" style={{marginTop: "10px", fontSize: "18px"}}>
                   {"אין לך חשבון? הירשם"}
                 </Button>
               </Grid>
-            </Grid>
-          </form>
+              <Grid item xs>
+                <Button component={Link} to="/auth/google" variant="contained" style={{marginTop: "10px", width: "100%", backgroundColor: "#de5246", fontSize: "18px"}}>
+                  <FontAwesomeIcon icon={['fab', 'google']} pull="right" color="white"/>{"התחבר עם גוגל"}
+                </Button>
+              </Grid>
+          </Grid>  
+          <MessageDialog
+            dialogTitle={message.title}
+            dialogContent={message.content}
+            open={open}
+            closeDialog={closeDialog}
+          /> 
         </ThemeProvider>
-        <Link to="/auth/google">
-          <GoogleLoginButton align="center" text="התחבר עם גוגל" />
-        </Link>
       </Container>
     </RTL>
   );
